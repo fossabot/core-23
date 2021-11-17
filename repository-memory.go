@@ -50,6 +50,7 @@ func (repo *MemoryRepository) Replace(_ context.Context, itemUUID string, item m
 	for i := range repo.items {
 		if repo.items[i][ItemFieldUUID] == itemUUID {
 			repo.items[i] = item
+
 			return nil
 		}
 	}
@@ -64,6 +65,7 @@ func (repo *MemoryRepository) Delete(_ context.Context, itemUUID string) error {
 	for i := range repo.items {
 		if repo.items[i][ItemFieldUUID] == itemUUID {
 			repo.items = append(repo.items[:i], repo.items[i+1:]...)
+
 			return nil
 		}
 	}

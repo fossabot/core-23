@@ -1,0 +1,15 @@
+run:
+  deadline: 5m
+  tests: false
+  modules-download-mode: readonly
+
+linters:
+  enable-all: true
+  disable:
+    - golint # deprecated
+    - maligned # deprecated
+    - scopelint # deprecated
+    - interfacer # deprecated
+    - exhaustivestruct
+    - nilnil
+    - varnamelen
