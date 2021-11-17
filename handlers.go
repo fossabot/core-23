@@ -29,7 +29,10 @@ func CreateItemHandler(repo Repository) http.HandlerFunc {
 		}
 
 		item[ItemFieldUUID] = uuid.NewString()
-		item[ItemFieldCreatedAt] = time.Now().Format(time.RFC3339)
+
+		now := time.Now().Format(time.RFC3339)
+		item[ItemFieldCreatedAt] = now
+		item[ItemFieldUpdatedAt] = now
 
 		err = repo.Insert(r.Context(), item)
 		if err != nil {
@@ -123,6 +126,7 @@ func ReplaceItemHandler(repo Repository) http.HandlerFunc {
 		item = newItem
 		item[ItemFieldUUID] = itemUUID
 		item[ItemFieldCreatedAt] = createdAt
+		item[ItemFieldUpdatedAt] = time.Now().Format(time.RFC3339)
 
 		err = repo.Replace(r.Context(), itemUUID, item)
 		if err != nil {
