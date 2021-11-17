@@ -1,0 +1,143 @@
+openapi: 3.0.3
+info:
+  title: Core
+  version: 0.0.1
+components:
+  responses:
+    204:
+      description: Request processed successfully.
+    400:
+      description: Bad request received.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: error message
+              error:
+                type: string
+                description: error details
+    404:
+      description: Item not found.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: error message
+              error:
+                type: string
+                description: error details
+    500:
+      description: Unexpected error occurred.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: error message
+              error:
+                type: string
+                description: error details
+paths:
+  /items:
+    post:
+      summary: Create Item
+      description: Creates a new item.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        201:
+          description: Item created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+        400:
+          $ref: '#/components/responses/400'
+        500:
+          $ref: '#/components/responses/500'
+    get:
+      summary: List Items
+      description: Lists all items.
+      responses:
+        200:
+          description: Items retreived successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+        500:
+          $ref: '#/components/responses/500'
+  /items/{itemUUID}:
+    parameters:
+      - name: itemUUID
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Read Item
+      description: Retreives an item by uuid.
+      parameters:
+        - name: itemUUID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Item retreived successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+    put:
+      summary: Replace Item
+      description: Replaces an item by uuid.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        200:
+          description: Item replaced successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+    delete:
+      summary: Delete Item
+      description: Deletes an item by uuid.
+      responses:
+        204:
+          $ref: '#/components/responses/204'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
