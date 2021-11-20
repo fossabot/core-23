@@ -12,11 +12,11 @@ func main() {
 	repo := NewMemoryRepository()
 	router := mux.NewRouter()
 
-	router.Methods(http.MethodPost).Path("/items").HandlerFunc(CreateItemHandler(repo))
-	router.Methods(http.MethodGet).Path("/items").HandlerFunc(ListItemsHandler(repo))
-	router.Methods(http.MethodGet).Path("/items/{name}").HandlerFunc(ReadItemHandler(repo))
-	router.Methods(http.MethodPut).Path("/items/{name}").HandlerFunc(ReplaceItemHandler(repo))
-	router.Methods(http.MethodDelete).Path("/items/{name}").HandlerFunc(DeleteItemHandler(repo))
+	router.Methods(http.MethodPost).Path("/{typePlural}").HandlerFunc(CreateItemHandler(repo))
+	router.Methods(http.MethodGet).Path("/{typePlural}").HandlerFunc(ListItemsHandler(repo))
+	router.Methods(http.MethodGet).Path("/{typePlural}/{name}").HandlerFunc(ReadItemHandler(repo))
+	router.Methods(http.MethodPut).Path("/{typePlural}/{name}").HandlerFunc(ReplaceItemHandler(repo))
+	router.Methods(http.MethodDelete).Path("/{typePlural}/{name}").HandlerFunc(DeleteItemHandler(repo))
 
 	err := http.ListenAndServe(env.GetString("API_ADDRESS", ":80"), router)
 	if err != nil {

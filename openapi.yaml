@@ -46,7 +46,13 @@ components:
                 type: string
                 description: error details
 paths:
-  /items:
+  /{typePlural}:
+    parameters:
+      - name: typePlural
+        in: path
+        required: true
+        schema:
+          type: string
     post:
       summary: Create Item
       description: Creates a new item.
@@ -83,17 +89,21 @@ paths:
                       type: object
         500:
           $ref: '#/components/responses/500'
-  /items/{name}:
+  /{typePlural}/{name}:
     parameters:
+      - name: typePlural
+        in: path
+        required: true
+        schema:
+          type: string
       - name: name
         in: path
         required: true
         schema:
           type: string
-          format: uuid
     get:
       summary: Read Item
-      description: Retreives an item by name.
+      description: Retreives an item by type and name.
       responses:
         200:
           description: Item retreived successfully.
@@ -107,7 +117,7 @@ paths:
           $ref: '#/components/responses/500'
     put:
       summary: Replace Item
-      description: Replaces an item by name.
+      description: Replaces an item by type and name.
       requestBody:
         content:
           application/json:
@@ -126,7 +136,7 @@ paths:
           $ref: '#/components/responses/500'
     delete:
       summary: Delete Item
-      description: Deletes an item by name.
+      description: Deletes an item by type and name.
       responses:
         204:
           $ref: '#/components/responses/204'

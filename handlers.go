@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/gertd/go-pluralize"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -21,6 +22,26 @@ func CreateItemHandler(repo Repository) http.HandlerFunc {
 	type Request map[string]interface{}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		pc := pluralize.NewClient()
+
+		typePlural := mux.Vars(r)["typePlural"]
+
+		if !pc.IsPlural(typePlural) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "you should set plural form of the type"})
+
+			return
+		}
+
+		typ := pc.Singular(typePlural)
+
+		if !isValidType(typ) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("type field is not valid, it should an string that matches the regex '%s'", TypeRegex)})
+
+			return
+		}
+
 		var item Request
 
 		err := json.NewDecoder(r.Body).Decode(&item)
@@ -47,22 +68,23 @@ func CreateItemHandler(repo Repository) http.HandlerFunc {
 			return
 		}
 
-		_, err = repo.FindByName(r.Context(), name)
+		_, err = repo.FindByTypeAndName(r.Context(), typ, name)
 		if err != nil {
 			if !errors.Is(err, ErrItemNotFound) {
 				w.WriteHeader(http.StatusInternalServerError)
-				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by type and name from the repository", Error: err.Error()})
 
 				return
 			}
 		} else {
 			w.WriteHeader(http.StatusConflict)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' already exists", name)})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("%s with name '%s' already exists", typ, name)})
 
 			return
 		}
 
 		item[ItemFieldUUID] = uuid.NewString()
+		item[ItemFieldType] = typ
 
 		now := time.Now().Format(time.RFC3339)
 		item[ItemFieldCreatedAt] = now
@@ -85,16 +107,40 @@ func isValidName(name string) bool {
 	return regexp.MustCompile(NameRegex).MatchString(name)
 }
 
+func isValidType(typ string) bool {
+	return regexp.MustCompile(TypeRegex).MatchString(typ)
+}
+
 func ListItemsHandler(repo Repository) http.HandlerFunc {
 	type Response struct {
 		Items []Item `json:"items"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		items, err := repo.List(r.Context())
+		pc := pluralize.NewClient()
+
+		typePlural := mux.Vars(r)["typePlural"]
+
+		if !pc.IsPlural(typePlural) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "you should set plural form of the type"})
+
+			return
+		}
+
+		typ := pc.Singular(typePlural)
+
+		if !isValidType(typ) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("type field is not valid, it should an string that matches the regex '%s'", TypeRegex)})
+
+			return
+		}
+
+		items, err := repo.ListByType(r.Context(), typ)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on list items from the repository", Error: err.Error()})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on list items by type from the repository", Error: err.Error()})
 
 			return
 		}
@@ -107,16 +153,36 @@ func ListItemsHandler(repo Repository) http.HandlerFunc {
 
 func ReadItemHandler(repo Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		pc := pluralize.NewClient()
+
+		typePlural := mux.Vars(r)["typePlural"]
+
+		if !pc.IsPlural(typePlural) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "you should set plural form of the type"})
+
+			return
+		}
+
+		typ := pc.Singular(typePlural)
+
+		if !isValidType(typ) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("type field is not valid, it should an string that matches the regex '%s'", TypeRegex)})
+
+			return
+		}
+
 		name := mux.Vars(r)["name"]
 
-		item, err := repo.FindByName(r.Context(), name)
+		item, err := repo.FindByTypeAndName(r.Context(), typ, name)
 		if err != nil {
 			if errors.Is(err, ErrItemNotFound) {
 				w.WriteHeader(http.StatusNotFound)
-				_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("%s with name '%s' not found", typ, name)})
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
-				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by type and name from the repository", Error: err.Error()})
 			}
 
 			return
@@ -130,6 +196,26 @@ func ReplaceItemHandler(repo Repository) http.HandlerFunc {
 	type Request map[string]interface{}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		pc := pluralize.NewClient()
+
+		typePlural := mux.Vars(r)["typePlural"]
+
+		if !pc.IsPlural(typePlural) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "you should set plural form of the type"})
+
+			return
+		}
+
+		typ := pc.Singular(typePlural)
+
+		if !isValidType(typ) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("type field is not valid, it should an string that matches the regex '%s'", TypeRegex)})
+
+			return
+		}
+
 		var newItem Request
 
 		err := json.NewDecoder(r.Body).Decode(&newItem)
@@ -142,14 +228,14 @@ func ReplaceItemHandler(repo Repository) http.HandlerFunc {
 
 		name := mux.Vars(r)["name"]
 
-		item, err := repo.FindByName(r.Context(), name)
+		item, err := repo.FindByTypeAndName(r.Context(), typ, name)
 		if err != nil {
 			if errors.Is(err, ErrItemNotFound) {
 				w.WriteHeader(http.StatusNotFound)
-				_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("%s with name '%s' not found", typ, name)})
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
-				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by type and name from the repository", Error: err.Error()})
 			}
 
 			return
@@ -159,8 +245,9 @@ func ReplaceItemHandler(repo Repository) http.HandlerFunc {
 		itemUUID := item.UUID()
 
 		item = Item(newItem)
-		item[ItemFieldName] = name
 		item[ItemFieldUUID] = itemUUID
+		item[ItemFieldName] = name
+		item[ItemFieldType] = typ
 		item[ItemFieldCreatedAt] = createdAt
 		item[ItemFieldUpdatedAt] = time.Now().Format(time.RFC3339)
 
@@ -178,16 +265,36 @@ func ReplaceItemHandler(repo Repository) http.HandlerFunc {
 
 func DeleteItemHandler(repo Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		pc := pluralize.NewClient()
+
+		typePlural := mux.Vars(r)["typePlural"]
+
+		if !pc.IsPlural(typePlural) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "you should set plural form of the type"})
+
+			return
+		}
+
+		typ := pc.Singular(typePlural)
+
+		if !isValidType(typ) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("type field is not valid, it should an string that matches the regex '%s'", TypeRegex)})
+
+			return
+		}
+
 		name := mux.Vars(r)["name"]
 
-		item, err := repo.FindByName(r.Context(), name)
+		item, err := repo.FindByTypeAndName(r.Context(), typ, name)
 		if err != nil {
 			if errors.Is(err, ErrItemNotFound) {
 				w.WriteHeader(http.StatusNotFound)
-				_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("%s with name '%s' not found", typ, name)})
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
-				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by type and name from the repository", Error: err.Error()})
 			}
 
 			return
