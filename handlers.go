@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 type HTTPError struct {
@@ -46,15 +47,15 @@ func CreateItemHandler(repo Repository) http.HandlerFunc {
 			return
 		}
 
-		chk, err := repo.FindByName(r.Context(), name)
+		_, err = repo.FindByName(r.Context(), name)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
+			if !errors.Is(err, ErrItemNotFound) {
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
 
-			return
-		}
-
-		if chk != nil {
+				return
+			}
+		} else {
 			w.WriteHeader(http.StatusConflict)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' already exists", name)})
 
@@ -110,15 +111,13 @@ func ReadItemHandler(repo Repository) http.HandlerFunc {
 
 		item, err := repo.FindByName(r.Context(), name)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
-
-			return
-		}
-
-		if item == nil {
-			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
+			if errors.Is(err, ErrItemNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
+			}
 
 			return
 		}
@@ -145,15 +144,13 @@ func ReplaceItemHandler(repo Repository) http.HandlerFunc {
 
 		item, err := repo.FindByName(r.Context(), name)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
-
-			return
-		}
-
-		if item == nil {
-			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
+			if errors.Is(err, ErrItemNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
+			}
 
 			return
 		}
@@ -185,15 +182,13 @@ func DeleteItemHandler(repo Repository) http.HandlerFunc {
 
 		item, err := repo.FindByName(r.Context(), name)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
-
-			return
-		}
-
-		if item == nil {
-			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
+			if errors.Is(err, ErrItemNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
+			}
 
 			return
 		}
