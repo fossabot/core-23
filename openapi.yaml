@@ -83,9 +83,9 @@ paths:
                       type: object
         500:
           $ref: '#/components/responses/500'
-  /items/{itemUUID}:
+  /items/{name}:
     parameters:
-      - name: itemUUID
+      - name: name
         in: path
         required: true
         schema:
@@ -93,14 +93,7 @@ paths:
           format: uuid
     get:
       summary: Read Item
-      description: Retreives an item by uuid.
-      parameters:
-        - name: itemUUID
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      description: Retreives an item by name.
       responses:
         200:
           description: Item retreived successfully.
@@ -114,7 +107,7 @@ paths:
           $ref: '#/components/responses/500'
     put:
       summary: Replace Item
-      description: Replaces an item by uuid.
+      description: Replaces an item by name.
       requestBody:
         content:
           application/json:
@@ -133,7 +126,7 @@ paths:
           $ref: '#/components/responses/500'
     delete:
       summary: Delete Item
-      description: Deletes an item by uuid.
+      description: Deletes an item by name.
       responses:
         204:
           $ref: '#/components/responses/204'

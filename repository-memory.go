@@ -43,6 +43,16 @@ func (repo *MemoryRepository) Find(_ context.Context, itemUUID string) (map[stri
 	return nil, nil
 }
 
+func (repo *MemoryRepository) FindByName(_ context.Context, name string) (map[string]interface{}, error) {
+	for i := range repo.items {
+		if repo.items[i][ItemFieldName] == name {
+			return repo.items[i], nil
+		}
+	}
+
+	return nil, nil
+}
+
 func (repo *MemoryRepository) Replace(_ context.Context, itemUUID string, item map[string]interface{}) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()

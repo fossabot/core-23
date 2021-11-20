@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,6 +30,37 @@ func CreateItemHandler(repo Repository) http.HandlerFunc {
 			return
 		}
 
+		iName, ok := item[ItemFieldName]
+		if !ok {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "name field is not provided"})
+
+			return
+		}
+
+		name, ok := iName.(string)
+		if !ok || !isValidName(name) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("name field is not valid, it should an string that matches the regex '%s'", NameRegex)})
+
+			return
+		}
+
+		chk, err := repo.FindByName(r.Context(), name)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
+
+			return
+		}
+
+		if chk != nil {
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' already exists", name)})
+
+			return
+		}
+
 		item[ItemFieldUUID] = uuid.NewString()
 
 		now := time.Now().Format(time.RFC3339)
@@ -45,6 +78,10 @@ func CreateItemHandler(repo Repository) http.HandlerFunc {
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(item)
 	}
+}
+
+func isValidName(name string) bool {
+	return regexp.MustCompile(NameRegex).MatchString(name)
 }
 
 func ListItemsHandler(repo Repository) http.HandlerFunc {
@@ -69,19 +106,19 @@ func ListItemsHandler(repo Repository) http.HandlerFunc {
 
 func ReadItemHandler(repo Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		itemUUID := mux.Vars(r)["itemUUID"]
+		name := mux.Vars(r)["name"]
 
-		item, err := repo.Find(r.Context(), itemUUID)
+		item, err := repo.FindByName(r.Context(), name)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item from the repository", Error: err.Error()})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
 
 			return
 		}
 
 		if item == nil {
 			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item from the repository", Error: err.Error()})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
 
 			return
 		}
@@ -104,26 +141,28 @@ func ReplaceItemHandler(repo Repository) http.HandlerFunc {
 			return
 		}
 
-		itemUUID := mux.Vars(r)["itemUUID"]
+		name := mux.Vars(r)["name"]
 
-		item, err := repo.Find(r.Context(), itemUUID)
+		item, err := repo.FindByName(r.Context(), name)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item from the repository", Error: err.Error()})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
 
 			return
 		}
 
 		if item == nil {
 			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item from the repository", Error: err.Error()})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
 
 			return
 		}
 
 		createdAt := item[ItemFieldCreatedAt]
+		itemUUID := item[ItemFieldUUID].(string)
 
 		item = newItem
+		item[ItemFieldName] = name
 		item[ItemFieldUUID] = itemUUID
 		item[ItemFieldCreatedAt] = createdAt
 		item[ItemFieldUpdatedAt] = time.Now().Format(time.RFC3339)
@@ -142,24 +181,24 @@ func ReplaceItemHandler(repo Repository) http.HandlerFunc {
 
 func DeleteItemHandler(repo Repository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		itemUUID := mux.Vars(r)["itemUUID"]
+		name := mux.Vars(r)["name"]
 
-		item, err := repo.Find(r.Context(), itemUUID)
+		item, err := repo.FindByName(r.Context(), name)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item from the repository", Error: err.Error()})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by name from the repository", Error: err.Error()})
 
 			return
 		}
 
 		if item == nil {
 			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item from the repository", Error: err.Error()})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("item with name '%s' not found", name)})
 
 			return
 		}
 
-		err = repo.Delete(r.Context(), itemUUID)
+		err = repo.Delete(r.Context(), item[ItemFieldUUID].(string))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on delete item from the repository", Error: err.Error()})

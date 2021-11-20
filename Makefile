@@ -5,7 +5,7 @@ export GO111MODULE=on
 
 .DEFAULT_GOAL := .default
 
-.default: format build lint test
+.default: format build lint validate-openapi test
 
 .PHONY: help
 help: ## Shows help
@@ -36,3 +36,10 @@ build: .which-go ## Builds api
 .PHONY: test
 test: .which-go ## Tests go files
 	CGO_ENABLED=1 go test -coverpkg=./... -race -coverprofile=coverage.txt -covermode=atomic $(ROOT)/...
+
+.which-swagger-cli:
+	@which swagger-cli > /dev/null || (echo "install Swagger CLI from https://www.npmjs.com/package/swagger-cli" & exit 1)
+
+.PHONY: validate-openapi
+validate-openapi: .which-swagger-cli ## Validate OpenAPI YAML File
+	swagger-cli validate $(ROOT)/openapi.yaml

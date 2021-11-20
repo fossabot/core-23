@@ -13,3 +13,6 @@ linters:
     - exhaustivestruct
     - nilnil
     - varnamelen
+    - lll
+    - funlen
+    - forcetypeassert

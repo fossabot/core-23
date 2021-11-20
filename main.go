@@ -14,9 +14,9 @@ func main() {
 
 	router.Methods(http.MethodPost).Path("/items").HandlerFunc(CreateItemHandler(repo))
 	router.Methods(http.MethodGet).Path("/items").HandlerFunc(ListItemsHandler(repo))
-	router.Methods(http.MethodGet).Path("/items/{itemUUID}").HandlerFunc(ReadItemHandler(repo))
-	router.Methods(http.MethodPut).Path("/items/{itemUUID}").HandlerFunc(ReplaceItemHandler(repo))
-	router.Methods(http.MethodDelete).Path("/items/{itemUUID}").HandlerFunc(DeleteItemHandler(repo))
+	router.Methods(http.MethodGet).Path("/items/{name}").HandlerFunc(ReadItemHandler(repo))
+	router.Methods(http.MethodPut).Path("/items/{name}").HandlerFunc(ReplaceItemHandler(repo))
+	router.Methods(http.MethodDelete).Path("/items/{name}").HandlerFunc(DeleteItemHandler(repo))
 
 	err := http.ListenAndServe(env.GetString("API_ADDRESS", ":80"), router)
 	if err != nil {
