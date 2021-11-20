@@ -68,7 +68,7 @@ func CreateItemHandler(repo Repository) http.HandlerFunc {
 		item[ItemFieldCreatedAt] = now
 		item[ItemFieldUpdatedAt] = now
 
-		err = repo.Insert(r.Context(), item)
+		err = repo.Insert(r.Context(), Item(item))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on insert item to the repository", Error: err.Error()})
@@ -87,7 +87,7 @@ func isValidName(name string) bool {
 
 func ListItemsHandler(repo Repository) http.HandlerFunc {
 	type Response struct {
-		Items []map[string]interface{} `json:"items"`
+		Items []Item `json:"items"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -156,9 +156,9 @@ func ReplaceItemHandler(repo Repository) http.HandlerFunc {
 		}
 
 		createdAt := item[ItemFieldCreatedAt]
-		itemUUID := item[ItemFieldUUID].(string)
+		itemUUID := item.UUID()
 
-		item = newItem
+		item = Item(newItem)
 		item[ItemFieldName] = name
 		item[ItemFieldUUID] = itemUUID
 		item[ItemFieldCreatedAt] = createdAt
@@ -193,7 +193,7 @@ func DeleteItemHandler(repo Repository) http.HandlerFunc {
 			return
 		}
 
-		err = repo.Delete(r.Context(), item[ItemFieldUUID].(string))
+		err = repo.Delete(r.Context(), item.UUID())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on delete item from the repository", Error: err.Error()})

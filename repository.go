@@ -7,10 +7,10 @@ import (
 )
 
 type Repository interface {
-	Insert(ctx context.Context, item map[string]interface{}) (err error)
-	List(ctx context.Context) (items []map[string]interface{}, err error)
-	FindByName(ctx context.Context, name string) (item map[string]interface{}, err error)
-	Replace(ctx context.Context, itemUUID string, item map[string]interface{}) (err error)
+	Insert(ctx context.Context, item Item) (err error)
+	List(ctx context.Context) (items []Item, err error)
+	FindByName(ctx context.Context, name string) (item Item, err error)
+	Replace(ctx context.Context, itemUUID string, item Item) (err error)
 	Delete(ctx context.Context, itemUUID string) (err error)
 }
 
