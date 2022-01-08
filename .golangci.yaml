@@ -14,4 +14,3 @@ linters:
     - varnamelen
     - lll
     - funlen
-    - forcetypeassert
