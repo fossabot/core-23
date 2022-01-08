@@ -3,6 +3,7 @@ module github.com/nasermirzaei89/core
 go 1.17
 
 require (
+	github.com/evanphx/json-patch v0.5.2
 	github.com/gertd/go-pluralize v0.1.7
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
