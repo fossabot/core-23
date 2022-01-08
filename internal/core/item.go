@@ -1,26 +1,15 @@
 package core
 
-type Item map[string]interface{}
+import "time"
 
-func (item Item) UUID() string {
-	return item[ItemFieldUUID].(string)
+type Item struct {
+	UUID      string
+	Type      string
+	Name      string
+	Data      map[string]interface{}
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
-
-func (item Item) Type() string {
-	return item[ItemFieldType].(string)
-}
-
-func (item Item) Name() string {
-	return item[ItemFieldName].(string)
-}
-
-const (
-	ItemFieldUUID      = "uuid"
-	ItemFieldType      = "type"
-	ItemFieldName      = "name"
-	ItemFieldCreatedAt = "createdAt"
-	ItemFieldUpdatedAt = "updatedAt"
-)
 
 const (
 	NameRegex = "^[a-z][a-z0-9-]{1,254}[a-z0-9]$"

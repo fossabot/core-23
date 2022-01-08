@@ -35,7 +35,8 @@ build: .which-go ## Builds api
 
 .PHONY: test
 test: .which-go ## Tests go files
-	CGO_ENABLED=1 go test -coverpkg=./... -race -coverprofile=coverage.txt -covermode=atomic $(ROOT)/...
+	CGO_ENABLED=1 go test -coverpkg=./... -race -coverprofile=./coverage.out -covermode=atomic $(ROOT)/...
+	go tool cover -func coverage.out
 
 .which-swagger-cli:
 	@which swagger-cli > /dev/null || (echo "install Swagger CLI from https://www.npmjs.com/package/swagger-cli" & exit 1)

@@ -21,8 +21,6 @@ type HTTPError struct {
 }
 
 func (h *Handler) CreateItemHandler() http.HandlerFunc {
-	type Request map[string]interface{}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		pc := pluralize.NewClient()
 
@@ -44,9 +42,9 @@ func (h *Handler) CreateItemHandler() http.HandlerFunc {
 			return
 		}
 
-		var item Request
+		var req CreateItemRequest
 
-		err := json.NewDecoder(r.Body).Decode(&item)
+		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on decode request body", Error: err.Error()})
@@ -54,23 +52,14 @@ func (h *Handler) CreateItemHandler() http.HandlerFunc {
 			return
 		}
 
-		iName, ok := item[core.ItemFieldName]
-		if !ok {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: "name field is not provided"})
-
-			return
-		}
-
-		name, ok := iName.(string)
-		if !ok || !isValidName(name) {
+		if !isValidName(req.Name) {
 			w.WriteHeader(http.StatusBadRequest)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("name field is not valid, it should an string that matches the regex '%s'", core.NameRegex)})
 
 			return
 		}
 
-		_, err = h.itemRepo.FindByTypeAndName(r.Context(), typ, name)
+		_, err = h.itemRepo.FindByTypeAndName(r.Context(), typ, req.Name)
 		if err != nil {
 			if !errors.Is(err, repository.ErrItemNotFound) {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -80,19 +69,23 @@ func (h *Handler) CreateItemHandler() http.HandlerFunc {
 			}
 		} else {
 			w.WriteHeader(http.StatusConflict)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("%s with name '%s' already exists", typ, name)})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("%s with name '%s' already exists", typ, req.Name)})
 
 			return
 		}
 
-		item[core.ItemFieldUUID] = uuid.NewString()
-		item[core.ItemFieldType] = typ
+		now := time.Now()
 
-		now := time.Now().Format(time.RFC3339)
-		item[core.ItemFieldCreatedAt] = now
-		item[core.ItemFieldUpdatedAt] = now
+		item := core.Item{
+			UUID:      uuid.NewString(),
+			Type:      typ,
+			Name:      req.Name,
+			Data:      req.Data,
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
 
-		err = h.itemRepo.Insert(r.Context(), core.Item(item))
+		err = h.itemRepo.Insert(r.Context(), item)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on insert item to the repository", Error: err.Error()})
@@ -100,8 +93,10 @@ func (h *Handler) CreateItemHandler() http.HandlerFunc {
 			return
 		}
 
+		rsp := ItemFromEntity(item)
+
 		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(item)
+		_ = json.NewEncoder(w).Encode(rsp)
 	}
 }
 
@@ -114,10 +109,6 @@ func isValidType(typ string) bool {
 }
 
 func (h *Handler) ListItemsHandler() http.HandlerFunc {
-	type Response struct {
-		Items []core.Item `json:"items"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		pc := pluralize.NewClient()
 
@@ -147,7 +138,11 @@ func (h *Handler) ListItemsHandler() http.HandlerFunc {
 			return
 		}
 
-		rsp := Response{Items: items}
+		rsp := ListItemsResponse{Items: make([]Item, len(items))}
+
+		for i := range items {
+			rsp.Items[i] = ItemFromEntity(items[i])
+		}
 
 		_ = json.NewEncoder(w).Encode(rsp)
 	}
@@ -179,10 +174,11 @@ func (h *Handler) ReadItemHandler() http.HandlerFunc {
 
 		item, err := h.itemRepo.FindByTypeAndName(r.Context(), typ, name)
 		if err != nil {
-			if errors.Is(err, repository.ErrItemNotFound) {
+			switch {
+			case errors.Is(err, repository.ErrItemNotFound):
 				w.WriteHeader(http.StatusNotFound)
 				_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("%s with name '%s' not found", typ, name)})
-			} else {
+			default:
 				w.WriteHeader(http.StatusInternalServerError)
 				_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on find item by type and name from the repository", Error: err.Error()})
 			}
@@ -190,13 +186,13 @@ func (h *Handler) ReadItemHandler() http.HandlerFunc {
 			return
 		}
 
-		_ = json.NewEncoder(w).Encode(item)
+		rsp := ItemFromEntity(item)
+
+		_ = json.NewEncoder(w).Encode(rsp)
 	}
 }
 
 func (h *Handler) ReplaceItemHandler() http.HandlerFunc {
-	type Request map[string]interface{}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		pc := pluralize.NewClient()
 
@@ -213,22 +209,29 @@ func (h *Handler) ReplaceItemHandler() http.HandlerFunc {
 
 		if !isValidType(typ) {
 			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("type field is not valid, it should an string that matches the regex '%s'", core.TypeRegex)})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("type parameter is not valid, it should an string that matches the regex '%s'", core.TypeRegex)})
 
 			return
 		}
 
-		var newItem Request
+		name := mux.Vars(r)["name"]
 
-		err := json.NewDecoder(r.Body).Decode(&newItem)
+		if !isValidName(name) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("name parameter is not valid, it should an string that matches the regex '%s'", core.NameRegex)})
+
+			return
+		}
+
+		var req ReplaceItemRequest
+
+		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on decode request body", Error: err.Error()})
 
 			return
 		}
-
-		name := mux.Vars(r)["name"]
 
 		item, err := h.itemRepo.FindByTypeAndName(r.Context(), typ, name)
 		if err != nil {
@@ -243,17 +246,10 @@ func (h *Handler) ReplaceItemHandler() http.HandlerFunc {
 			return
 		}
 
-		createdAt := item[core.ItemFieldCreatedAt]
-		itemUUID := item.UUID()
+		item.Data = req.Data
+		item.UpdatedAt = time.Now()
 
-		item = core.Item(newItem)
-		item[core.ItemFieldUUID] = itemUUID
-		item[core.ItemFieldName] = name
-		item[core.ItemFieldType] = typ
-		item[core.ItemFieldCreatedAt] = createdAt
-		item[core.ItemFieldUpdatedAt] = time.Now().Format(time.RFC3339)
-
-		err = h.itemRepo.Replace(r.Context(), itemUUID, item)
+		err = h.itemRepo.Replace(r.Context(), item.UUID, item)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on replace item in the repository", Error: err.Error()})
@@ -261,7 +257,9 @@ func (h *Handler) ReplaceItemHandler() http.HandlerFunc {
 			return
 		}
 
-		_ = json.NewEncoder(w).Encode(item)
+		rsp := ItemFromEntity(item)
+
+		_ = json.NewEncoder(w).Encode(rsp)
 	}
 }
 
@@ -282,12 +280,19 @@ func (h *Handler) DeleteItemHandler() http.HandlerFunc {
 
 		if !isValidType(typ) {
 			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("type field is not valid, it should an string that matches the regex '%s'", core.TypeRegex)})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("type parameter is not valid, it should an string that matches the regex '%s'", core.TypeRegex)})
 
 			return
 		}
 
 		name := mux.Vars(r)["name"]
+
+		if !isValidName(name) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("name parameter is not valid, it should an string that matches the regex '%s'", core.NameRegex)})
+
+			return
+		}
 
 		item, err := h.itemRepo.FindByTypeAndName(r.Context(), typ, name)
 		if err != nil {
@@ -302,7 +307,7 @@ func (h *Handler) DeleteItemHandler() http.HandlerFunc {
 			return
 		}
 
-		err = h.itemRepo.Delete(r.Context(), item.UUID())
+		err = h.itemRepo.Delete(r.Context(), item.UUID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on delete item from the repository", Error: err.Error()})
