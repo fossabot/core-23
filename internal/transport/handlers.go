@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"time"
 
 	jsonpatch "github.com/evanphx/json-patch"
@@ -44,7 +43,7 @@ func (h *Handler) CreateItemHandler() http.HandlerFunc {
 			return
 		}
 
-		var req CreateItemRequest
+		var req core.CreateItemRequest
 
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
@@ -61,7 +60,7 @@ func (h *Handler) CreateItemHandler() http.HandlerFunc {
 			return
 		}
 
-		_, err = h.itemRepo.FindByTypeAndName(r.Context(), typ, req.Name)
+		_, err = h.itemRepo.GetByTypeAndName(r.Context(), typ, req.Name)
 		if err != nil {
 			if !errors.Is(err, repository.ErrItemNotFound) {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -95,19 +94,9 @@ func (h *Handler) CreateItemHandler() http.HandlerFunc {
 			return
 		}
 
-		rsp := ItemFromEntity(item)
-
 		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(rsp)
+		_ = json.NewEncoder(w).Encode(item)
 	}
-}
-
-func isValidName(name string) bool {
-	return regexp.MustCompile(core.NameRegex).MatchString(name)
-}
-
-func isValidType(typ string) bool {
-	return regexp.MustCompile(core.TypeRegex).MatchString(typ)
 }
 
 func (h *Handler) ListItemsHandler() http.HandlerFunc {
@@ -140,11 +129,7 @@ func (h *Handler) ListItemsHandler() http.HandlerFunc {
 			return
 		}
 
-		rsp := ListItemsResponse{Items: make([]Item, len(items))}
-
-		for i := range items {
-			rsp.Items[i] = ItemFromEntity(items[i])
-		}
+		rsp := core.ListItemsResponse{Items: items}
 
 		_ = json.NewEncoder(w).Encode(rsp)
 	}
@@ -174,7 +159,7 @@ func (h *Handler) ReadItemHandler() http.HandlerFunc {
 
 		name := mux.Vars(r)["name"]
 
-		item, err := h.itemRepo.FindByTypeAndName(r.Context(), typ, name)
+		item, err := h.itemRepo.GetByTypeAndName(r.Context(), typ, name)
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrItemNotFound):
@@ -188,9 +173,7 @@ func (h *Handler) ReadItemHandler() http.HandlerFunc {
 			return
 		}
 
-		rsp := ItemFromEntity(item)
-
-		_ = json.NewEncoder(w).Encode(rsp)
+		_ = json.NewEncoder(w).Encode(item)
 	}
 }
 
@@ -225,7 +208,7 @@ func (h *Handler) ReplaceItemHandler() http.HandlerFunc {
 			return
 		}
 
-		var req ReplaceItemRequest
+		var req core.ReplaceItemRequest
 
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
@@ -235,7 +218,7 @@ func (h *Handler) ReplaceItemHandler() http.HandlerFunc {
 			return
 		}
 
-		item, err := h.itemRepo.FindByTypeAndName(r.Context(), typ, name)
+		item, err := h.itemRepo.GetByTypeAndName(r.Context(), typ, name)
 		if err != nil {
 			if errors.Is(err, repository.ErrItemNotFound) {
 				w.WriteHeader(http.StatusNotFound)
@@ -251,7 +234,7 @@ func (h *Handler) ReplaceItemHandler() http.HandlerFunc {
 		item.Data = req.Data
 		item.UpdatedAt = time.Now()
 
-		err = h.itemRepo.Replace(r.Context(), item.UUID, item)
+		err = h.itemRepo.Replace(r.Context(), item.UUID, *item)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on replace item in the repository", Error: err.Error()})
@@ -259,9 +242,7 @@ func (h *Handler) ReplaceItemHandler() http.HandlerFunc {
 			return
 		}
 
-		rsp := ItemFromEntity(item)
-
-		_ = json.NewEncoder(w).Encode(rsp)
+		_ = json.NewEncoder(w).Encode(*item)
 	}
 }
 
@@ -296,7 +277,7 @@ func (h *Handler) PatchItemHandler() http.HandlerFunc {
 			return
 		}
 
-		item, err := h.itemRepo.FindByTypeAndName(r.Context(), typ, name)
+		item, err := h.itemRepo.GetByTypeAndName(r.Context(), typ, name)
 		if err != nil {
 			if errors.Is(err, repository.ErrItemNotFound) {
 				w.WriteHeader(http.StatusNotFound)
@@ -309,7 +290,7 @@ func (h *Handler) PatchItemHandler() http.HandlerFunc {
 			return
 		}
 
-		originalBytes, err := json.Marshal(ItemFromEntity(item))
+		originalBytes, err := json.Marshal(item)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on marshal original item", Error: err.Error()})
@@ -361,7 +342,7 @@ func (h *Handler) PatchItemHandler() http.HandlerFunc {
 			return
 		}
 
-		var modified Item
+		var modified core.Item
 
 		err = json.Unmarshal(modifiedBytes, &modified)
 		if err != nil {
@@ -371,14 +352,10 @@ func (h *Handler) PatchItemHandler() http.HandlerFunc {
 			return
 		}
 
-		err = h.itemRepo.Replace(r.Context(), item.UUID, core.Item{
-			UUID:      item.UUID,
-			Type:      item.Type,
-			Name:      item.Name,
-			Data:      modified.Data,
-			CreatedAt: item.CreatedAt,
-			UpdatedAt: time.Now(),
-		})
+		item.Data = modified.Data
+		item.UpdatedAt = time.Now()
+
+		err = h.itemRepo.Replace(r.Context(), item.UUID, *item)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: "error on replace item in the repository", Error: err.Error()})
@@ -386,9 +363,7 @@ func (h *Handler) PatchItemHandler() http.HandlerFunc {
 			return
 		}
 
-		rsp := ItemFromEntity(item)
-
-		_ = json.NewEncoder(w).Encode(rsp)
+		_ = json.NewEncoder(w).Encode(*item)
 	}
 }
 
@@ -423,7 +398,7 @@ func (h *Handler) DeleteItemHandler() http.HandlerFunc {
 			return
 		}
 
-		item, err := h.itemRepo.FindByTypeAndName(r.Context(), typ, name)
+		item, err := h.itemRepo.GetByTypeAndName(r.Context(), typ, name)
 		if err != nil {
 			if errors.Is(err, repository.ErrItemNotFound) {
 				w.WriteHeader(http.StatusNotFound)

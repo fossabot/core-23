@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var _ repository.Item = &ItemRepository{}
+var _ repository.ItemRepository = &ItemRepository{}
 
 type ItemRepository struct {
 	items []core.Item
@@ -47,14 +47,16 @@ func (repo *ItemRepository) ListByType(_ context.Context, typ string) ([]core.It
 	return res, nil
 }
 
-func (repo *ItemRepository) FindByTypeAndName(_ context.Context, typ, name string) (core.Item, error) {
+func (repo *ItemRepository) GetByTypeAndName(_ context.Context, typ, name string) (*core.Item, error) {
 	for i := range repo.items {
 		if repo.items[i].Type == typ && repo.items[i].Name == name {
-			return repo.items[i], nil
+			res := repo.items[i]
+
+			return &res, nil
 		}
 	}
 
-	return core.Item{}, repository.ErrItemNotFound
+	return nil, repository.ErrItemNotFound
 }
 
 func (repo *ItemRepository) Replace(_ context.Context, itemUUID string, item core.Item) error {

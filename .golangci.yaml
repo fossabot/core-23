@@ -14,3 +14,5 @@ linters:
     - varnamelen
     - lll
     - funlen
+    - gocognit
+    - cyclop

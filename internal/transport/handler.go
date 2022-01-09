@@ -9,14 +9,14 @@ import (
 
 type Handler struct {
 	router   *mux.Router
-	itemRepo repository.Item
+	itemRepo repository.ItemRepository
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.router.ServeHTTP(w, r)
 }
 
-func New(itemRepo repository.Item) *Handler {
+func New(itemRepo repository.ItemRepository) *Handler {
 	h := new(Handler)
 
 	h.itemRepo = itemRepo

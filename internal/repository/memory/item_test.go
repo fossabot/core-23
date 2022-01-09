@@ -157,10 +157,10 @@ func TestItemRepository_FindByTypeAndName(t *testing.T) {
 		err := itemRepo.Insert(ctx, item)
 		require.NoError(t, err)
 
-		res, err := itemRepo.FindByTypeAndName(ctx, typ, name)
+		res, err := itemRepo.GetByTypeAndName(ctx, typ, name)
 		assert.NoError(t, err)
 
-		assert.EqualValues(t, item, res)
+		assert.EqualValues(t, item, *res)
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
@@ -171,7 +171,7 @@ func TestItemRepository_FindByTypeAndName(t *testing.T) {
 		name := "fee"
 		typ := "bar"
 
-		_, err := itemRepo.FindByTypeAndName(ctx, name, typ)
+		_, err := itemRepo.GetByTypeAndName(ctx, name, typ)
 		assert.True(t, errors.Is(err, repository.ErrItemNotFound))
 	})
 }
@@ -208,10 +208,10 @@ func TestItemRepository_Replace(t *testing.T) {
 		err = itemRepo.Replace(ctx, item.UUID, item)
 		assert.NoError(t, err)
 
-		res, err := itemRepo.FindByTypeAndName(ctx, typ, name)
+		res, err := itemRepo.GetByTypeAndName(ctx, typ, name)
 		require.NoError(t, err)
 
-		assert.EqualValues(t, item, res)
+		assert.EqualValues(t, item, *res)
 	})
 
 	t.Run("Change UUID", func(t *testing.T) {
