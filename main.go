@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	repo := memory.NewMemoryRepository()
+	repo := memory.NewItemRepository()
 
 	h := transport.New(repo)
 

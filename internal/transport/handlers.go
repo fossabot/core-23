@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,7 +42,7 @@ func (h *Handler) CreateItemHandler() http.HandlerFunc {
 			return
 		}
 
-		var req core.CreateItemRequest
+		var req core.Item
 
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
@@ -129,7 +128,7 @@ func (h *Handler) ListItemsHandler() http.HandlerFunc {
 			return
 		}
 
-		rsp := core.ListItemsResponse{Items: items}
+		rsp := core.ItemList{Items: items}
 
 		_ = json.NewEncoder(w).Encode(rsp)
 	}
@@ -152,12 +151,19 @@ func (h *Handler) ReadItemHandler() http.HandlerFunc {
 
 		if !isValidType(typ) {
 			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("type field is not valid, it should an string that matches the regex '%s'", core.TypeRegex)})
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("type parameter is not valid, it should an string that matches the regex '%s'", core.TypeRegex)})
 
 			return
 		}
 
 		name := mux.Vars(r)["name"]
+
+		if !isValidName(name) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("name parameter is not valid, it should an string that matches the regex '%s'", core.NameRegex)})
+
+			return
+		}
 
 		item, err := h.itemRepo.GetByTypeAndName(r.Context(), typ, name)
 		if err != nil {
@@ -208,7 +214,7 @@ func (h *Handler) ReplaceItemHandler() http.HandlerFunc {
 			return
 		}
 
-		var req core.ReplaceItemRequest
+		var req core.Item
 
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {

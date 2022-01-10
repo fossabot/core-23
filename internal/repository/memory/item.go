@@ -99,7 +99,7 @@ func (repo *ItemRepository) Delete(_ context.Context, itemUUID string) error {
 	return errors.Errorf("item with uuid '%s' doesn't exist", itemUUID)
 }
 
-func NewMemoryRepository() *ItemRepository {
+func NewItemRepository() *ItemRepository {
 	return &ItemRepository{
 		items: make([]core.Item, 0),
 		mu:    sync.Mutex{},

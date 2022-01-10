@@ -22,7 +22,7 @@ func TestItemRepository_Insert(t *testing.T) {
 	t.Run("Insert 1", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		typ := "baz"
 
@@ -49,7 +49,7 @@ func TestItemRepository_Insert(t *testing.T) {
 	t.Run("Insert 2", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		typ := "baz"
 
@@ -86,7 +86,7 @@ func TestItemRepository_Insert(t *testing.T) {
 	t.Run("Duplicate UUID", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		typ := "baz"
 
@@ -109,7 +109,7 @@ func TestItemRepository_Insert(t *testing.T) {
 	t.Run("Duplicate Type+Name", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		typ := "baz"
 
@@ -140,7 +140,7 @@ func TestItemRepository_FindByTypeAndName(t *testing.T) {
 	t.Run("Found", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		name := "foo"
 		typ := "bar"
@@ -166,7 +166,7 @@ func TestItemRepository_FindByTypeAndName(t *testing.T) {
 	t.Run("Not Found", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		name := "fee"
 		typ := "bar"
@@ -184,7 +184,7 @@ func TestItemRepository_Replace(t *testing.T) {
 	t.Run("Replace", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		name := "foo"
 		typ := "bar"
@@ -217,7 +217,7 @@ func TestItemRepository_Replace(t *testing.T) {
 	t.Run("Change UUID", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		name := "foo"
 		typ := "bar"
@@ -245,7 +245,7 @@ func TestItemRepository_Replace(t *testing.T) {
 	t.Run("Conflict on Type and Name", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		item1 := core.Item{
 			UUID:      uuid.NewString(),
@@ -280,7 +280,7 @@ func TestItemRepository_Replace(t *testing.T) {
 	t.Run("Not Found", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		item := core.Item{
 			UUID:      uuid.NewString(),
@@ -304,7 +304,7 @@ func TestItemRepository_Delete(t *testing.T) {
 	t.Run("Normal", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		item := core.Item{
 			UUID:      uuid.NewString(),
@@ -325,7 +325,7 @@ func TestItemRepository_Delete(t *testing.T) {
 	t.Run("Not Found", func(t *testing.T) {
 		t.Parallel()
 
-		itemRepo := memory.NewMemoryRepository()
+		itemRepo := memory.NewItemRepository()
 
 		err := itemRepo.Delete(ctx, uuid.NewString())
 		assert.Error(t, err)
