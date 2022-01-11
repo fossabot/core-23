@@ -52,6 +52,13 @@ func (h *Handler) CreateItemHandler() http.HandlerFunc {
 			return
 		}
 
+		if req.Name == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(HTTPError{Message: "name field is required"})
+
+			return
+		}
+
 		if !isValidName(req.Name) {
 			w.WriteHeader(http.StatusBadRequest)
 			_ = json.NewEncoder(w).Encode(HTTPError{Message: fmt.Sprintf("name field is not valid, it should an string that matches the regex '%s'", core.NameRegex)})
